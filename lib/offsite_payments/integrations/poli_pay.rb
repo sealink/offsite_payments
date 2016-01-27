@@ -185,7 +185,8 @@ module OffsitePayments
       # http://www.polipaymentdeveloper.com/gettransaction#gettransaction_response
       class Notification < OffsitePayments::Notification
         def initialize(params, options = {})
-          token = params.fetch('token')
+          # POLi nudge uses Token, redirect use token
+          token = params.fetch('Token') { params.fetch('token') }
           @params = QueryInterface.new(options[:login], options[:password]).call(token)
         end
 
