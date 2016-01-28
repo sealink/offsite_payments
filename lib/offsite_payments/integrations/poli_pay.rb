@@ -140,62 +140,46 @@ module OffsitePayments
       end
 
       class Helper < OffsitePayments::Helper
+        SUPPORTED_CURRENCIES = %w[AUD NZD]
+
+        mapping :notify_url, 'NotificationUrl'
+        mapping :amount, 'Amount'
+        mapping :currency, 'CurrencyCode'
+        mapping :order, 'MerchantReference'
+
         attr_reader :token_parameters
 
         def initialize(order, account, options = {})
           @login    = account
           @password = options.fetch(:password)
           @options  = options.except(:password).merge(order: order)
-          super(order, account, options.except(:homepage_url, :password))
+          super(order, account, options.except(
+            :homepage_url, :failure_url, :cancellation_url, :password))
+          add_field 'MerchantDateTime', current_time_utc
+          add_field 'Timeout', options[:timeout] if options[:timeout] # or defaults
+          add_field 'SuccessUrl', options.fetch(:success_url) { options.fetch(:return_url) }
+          add_field 'FailureUrl', options.fetch(:failure_url) { options.fetch(:return_url) }
+          add_field 'CancellationUrl', options.fetch(:cancellation_url) { options.fetch(:return_url) }
+          add_field 'MerchantHomepageURL', options.fetch(:homepage_url)
         end
 
-        def credential_based_url
-          options = TransactionBuilder.new(@options, self).to_hash
-          UrlInterface.new(@login, @password).call(options)
-        end
-      end
-
-      class TransactionBuilder
-        SUPPORTED_CURRENCIES = ['AUD', 'NZD']
-
-        def initialize(options, helper)
-          @reference        = options.fetch(:order)
-          @timeout          = options[:timeout] # or defaults
-          @success_url      = options.fetch(:success_url, options.fetch(:return_url))
-          @failure_url      = options.fetch(:failure_url, options.fetch(:return_url))
-          @notification_url = helper.notify_url
-          @homepage_url     = options.fetch(:homepage_url)
-          self.amount       = options.fetch(:amount)
-          self.currency     = options.fetch(:currency)
-        end
-
-        def amount=(amount)
-          @amount = '%.2f' % amount.to_f.round(2)
-        end
-
-        def currency=(currency)
-          unless SUPPORTED_CURRENCIES.include?(currency)
-            raise ArgumentError, "Unsupported currency"
-          end
-          @currency = currency
-        end
-
-        def current_time
+        def current_time_utc
           Time.current.utc.strftime("%Y-%m-%dT%H:%M:%S")
         end
 
-        def to_hash
-          {
-            Amount:              @amount,
-            CurrencyCode:        @currency,
-            MerchantReference:   @reference,
-            SuccessURL:          @success_url,
-            FailureURL:          @failure_url,
-            NotificationUrl:     @notification_url,
-            MerchantHomepageURL: @homepage_url,
-            Timeout:             @timeout,
-            MerchantDateTime:    current_time
-          }.reject { |_, v| v.blank? }
+        def currency(symbol)
+          unless SUPPORTED_CURRENCIES.include?(symbol)
+            raise ArgumentError, "Unsupported currency"
+          end
+          add_field mappings[:currency], symbol
+        end
+
+        def amount(money)
+          add_field mappings[:amount], '%.2f' % money.to_f.round(2)
+        end
+
+        def credential_based_url
+          UrlInterface.new(@login, @password).call(form_fields)
         end
       end
 
@@ -203,7 +187,8 @@ module OffsitePayments
       # http://www.polipaymentdeveloper.com/gettransaction#gettransaction_response
       class Notification < OffsitePayments::Notification
         def initialize(params, options = {})
-          token = params.fetch('token')
+          # POLi nudge uses Token, redirect use token
+          token = params.fetch('Token') { params.fetch('token') }
           @params = QueryInterface.new(options[:login], options[:password]).call(token)
         end
 
