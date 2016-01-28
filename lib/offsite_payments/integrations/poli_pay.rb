@@ -155,7 +155,7 @@ module OffsitePayments
           @options  = options.except(:password).merge(order: order)
           super(order, account, options.except(
             :homepage_url, :failure_url, :cancellation_url, :password))
-          add_field 'MerchantDateTime', current_time
+          add_field 'MerchantDateTime', current_time_utc
           add_field 'Timeout', options[:timeout] if options[:timeout] # or defaults
           add_field 'SuccessUrl', options.fetch(:success_url) { options.fetch(:return_url) }
           add_field 'FailureUrl', options.fetch(:failure_url) { options.fetch(:return_url) }
@@ -163,7 +163,7 @@ module OffsitePayments
           add_field 'MerchantHomepageURL', options.fetch(:homepage_url)
         end
 
-        def current_time
+        def current_time_utc
           Time.current.utc.strftime("%Y-%m-%dT%H:%M:%S")
         end
 
