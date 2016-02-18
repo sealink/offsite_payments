@@ -20,6 +20,17 @@ class RemotePoliPayTest < Test::Unit::TestCase
     }
   end
 
+  def raw_url_fields
+    {
+      "MerchantReference"   => "22TEST",
+      "Amount"              => "157.0",
+      "CurrencyCode"        => "AUD",
+      "MerchantDateTime"    => "2015-02-18T00:55:23",
+      "SuccessUrl"          => "http://example.org/return",
+      "MerchantHomepageURL" => "http://example.org"
+    }
+  end
+
   def test_bad_password
     options = transaction_options
     options[:password] = 'wrong'
@@ -43,6 +54,19 @@ class RemotePoliPayTest < Test::Unit::TestCase
     assert_raise KeyError.new('key not found: :homepage_url') do
       helper.credential_based_url
     end
+  end
+
+  def test_required_fields_at_api_level
+    form_fields = raw_url_fields.except('MerchantHomepageURL')
+    begin
+      PoliPay::UrlInterface.new(@login, @password).call(form_fields)
+    rescue PoliPay::UrlInterface::UrlRequestError => e
+      error = e
+    end
+    assert_equal "Failed to initiate transaction for merchant 'S6102300' " \
+                 "with reference '22TEST': " \
+                 "The Homepage URL was not specified",
+                 error.error_message
   end
 
   def test_url_generation
