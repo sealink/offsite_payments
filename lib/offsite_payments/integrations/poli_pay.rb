@@ -1,3 +1,6 @@
+# Requirements from:
+# https://polipayments.com/assets/docs/POLiWebServicesMIG.pdf
+
 module OffsitePayments
   module Integrations
     module PoliPay
@@ -153,6 +156,7 @@ module OffsitePayments
           @login    = account
           @password = options.fetch(:password)
           @options  = options.except(:password).merge(order: order)
+          check_order!(order)
           super(order, account, options.except(
             :homepage_url, :failure_url, :cancellation_url, :password))
           add_field 'MerchantDateTime', current_time_utc
@@ -161,6 +165,15 @@ module OffsitePayments
           add_field 'FailureUrl', options.fetch(:failure_url) { options.fetch(:return_url) }
           add_field 'CancellationUrl', options.fetch(:cancellation_url) { options.fetch(:return_url) }
           add_field 'MerchantHomepageURL', options.fetch(:homepage_url)
+        end
+
+        def check_order!(order)
+          invalid = order.match /[^[[:alnum:]]_.:?\/\-|]/
+          return unless invalid
+          fail ArgumentError,
+               'order not valid format, must only include alphanumeric, ' \
+               'underscore (_), period (.), colon (:), question mark (?), ' \
+               'forward slash (/), hyphen (-) or pipe (|)'
         end
 
         def current_time_utc
