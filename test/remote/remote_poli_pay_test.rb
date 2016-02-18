@@ -48,12 +48,19 @@ class RemotePoliPayTest < Test::Unit::TestCase
                  error.message
   end
 
-  def test_required_fields
-    options = transaction_options.except(:homepage_url)
-    helper = PoliPay::Helper.new('22TEST', @login, options)
-    assert_raise KeyError.new('key not found: :homepage_url') do
-      helper.credential_based_url
+  def test_merchant_reference_field
+    reference = '22+TEST'
+    form_fields = raw_url_fields.merge('MerchantReference' => reference)
+    begin
+      PoliPay::UrlInterface.new(@login, @password).call(form_fields)
+    rescue PoliPay::UrlInterface::UrlRequestError => e
+      error = e
     end
+    assert_equal "Failed to initiate transaction for merchant 'S6102300' " \
+                 "with reference '#{reference}': " \
+                 "The Merchant Reference value of #{reference} contains " \
+                 "unsupported characters",
+                 error.error_message
   end
 
   def test_required_fields_at_api_level

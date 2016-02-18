@@ -26,4 +26,17 @@ class PoliPayModuleTest < Test::Unit::TestCase
       PoliPay::Helper.new('22TEST', @login, options)
     end
   end
+
+  def test_valid_merchant_reference
+    assert_nothing_raised do
+      PoliPay::Helper.new('22TEST_.:?/-|', @login, transaction_options)
+    end
+  end
+
+  def test_invalid_merchant_reference_space
+    assert_raise ArgumentError do
+      PoliPay::Helper.new('22 TEST', @login, transaction_options)
+    end
+  end
+
 end
