@@ -29,18 +29,18 @@ class MigsTest < Test::Unit::TestCase
                  '&vpc_MerchTxnRef=uniq'+
                  '&vpc_Locale=en'+
                  '&vpc_ReturnURL=http%3A%2F%2Fexample.org%2Freturn'+
-                 '&vpc_SecureHash=9D8E697B247939470CE904715B15C744'
+                 '&vpc_SecureHash=2E400878DF5A4C1DD700A56F5F9B85DF4B6F158D078AFEF9A955DA2A75FD9F61'+
+                 '&vpc_SecureHashType=SHA256'
   end
 
   def test_secure_hash
-    ordered_values = "#{@secure_hash}#{@cents}#{@merchant_id}#{@order_info}"
     calculated = OffsitePayments::Integrations::Migs::SecureHash.calculate(
                    @secure_hash,
                    Amount: @cents,
                    MerchantId: @merchant_id,
                    OrderInfo: @order_info
                  )
-    assert_equal Digest::MD5.hexdigest(ordered_values).upcase, calculated
+    assert_equal 'D2896E12A68F210296FAE08E677704EE1DC641C8A3F6C81505EA46167096A0B1', calculated
   end
 
   def test_purchase_offsite_response
@@ -76,7 +76,7 @@ class MigsTest < Test::Unit::TestCase
     notification_class = OffsitePayments::Integrations::Migs::Notification
     opts = { secure_hash: @secure_hash }
     notification = notification_class.new(response_params, opts)
-    assert_equal '8794D9478D030B65F3092282E76283F8',
+    assert_equal '20DE2CDEBE40D6F24E3ABC5D74081CB5B341CD447530121AD51A9504A923BBD0',
                  notification.expected_secure_hash
 
     assert notification.success?
