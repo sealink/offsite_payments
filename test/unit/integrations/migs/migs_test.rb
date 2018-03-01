@@ -101,7 +101,7 @@ class MigsTest < Test::Unit::TestCase
   def response_string_to_params(string)
     string.split('&').map.with_object({}) { |obj, hash|
       key, value = obj.split('=')
-      hash[key] = URI.unescape(value)
+      hash[key] = CGI.unescape(value)
     }
   end
 end
